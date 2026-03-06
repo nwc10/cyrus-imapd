@@ -52,7 +52,22 @@ jobs:
             cflags: "-Og"
             cxxflags: "-Og"
             image: "ghcr.io/cyrusimap/cyrus-docker:trixie"
-    runs-on: ubuntu-latest
+          - compiler: "--gcc"
+            desc: "gcc -Og debian arm bookworm"
+            # Matrix report truncates ^ after here, so "arm" before the cut
+            cflags: "-Og"
+            cxxflags: "-Og"
+            container: "ubuntu-24.04-arm"
+            image: "ghcr.io/cyrusimap/cyrus-docker:bookworm-arm"
+            jobs: 4
+          - compiler: "--clang"
+            desc: "clang -Og debian arm trixie"
+            cflags: "-Og"
+            cxxflags: "-Og"
+            container: "ubuntu-24.04-arm"
+            image: "ghcr.io/cyrusimap/cyrus-docker:trixie-arm"
+            jobs: 4
+    runs-on: ${{ matrix.container || 'ubuntu-latest' }}
     container:
         image: ${{ matrix.image || 'ghcr.io/cyrusimap/cyrus-docker:bookworm' }}
         options: --init --privileged
@@ -87,10 +102,10 @@ jobs:
       if: ${{ ! matrix.skip-cass }}
       id: cass1
       continue-on-error: true
-      run: cyd test --no-ok --slow --format prettier "${{ matrix.skip }}"
+      run: cyd test --jobs ${{ matrix.jobs || 8 }} --no-ok --slow --format prettier "${{ matrix.skip }}"
     - name: rerun cassandane failures noisily
       if: ${{ steps.cass1.outcome == 'failure' }}
-      run: cyd test --no-slow --format pretty --rerun
+      run: cyd test --jobs ${{ matrix.jobs || 8 }} --no-slow --format pretty --rerun
     - name: collect logs
       if: ${{ ! matrix.skip-cass }}
       run: cat /tmp/cass/*/conf/log/syslog
