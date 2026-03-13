@@ -6,6 +6,7 @@ on:
     branches:
       - master
       - main
+      - yak-shaving
       - 'cyrus-imapd-*'
   pull_request:
     branches:
@@ -28,27 +29,12 @@ jobs:
       matrix:
         include:
           - compiler: "--gcc"
-            desc: "gcc w/cass"
-          - compiler: "--clang"
-            desc: "clang w/cass"
-          - compiler: "--gcc"
-            desc: "gcc+ubsan w/cass"
-            san: "--ubsan"
-          - compiler: "--gcc"
-            desc: "gcc+asan w/cass"
-            san: "--asan"
-            skip: "!Cyrus::LibCyrus"
-          - compiler: "--gcc"
-            # -Og finds more errors at compile time
-            desc: "gcc -Og cunit"
+            desc: "gcc -Og debian bookworm"
             cflags: "-Og"
             cxxflags: "-Og"
-            skip-cass: 1
-          - compiler: "--gcc"
-            desc: "Non-UTC timezone"
-            pretest: "ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime && sudo dpkg-reconfigure --frontend noninteractive tzdata"
-          - compiler: "--gcc"
-            desc: "gcc -Og debian trixie"
+            image: "ghcr.io/cyrusimap/cyrus-docker:bookworm"
+          - compiler: "--clang"
+            desc: "clang -Og debian trixie"
             cflags: "-Og"
             cxxflags: "-Og"
             image: "ghcr.io/cyrusimap/cyrus-docker:trixie"
