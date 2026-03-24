@@ -56,6 +56,7 @@ my $builddir = canonpath("$basedir/cyrus-site");
 my %repo = (
   sasl  => 'https://github.com/cyrusimap/cyrus-sasl.git',
   imapd => 'https://github.com/cyrusimap/cyrus-imapd.git',
+  archive => 'https://github.com/cyrusimap/cyrusimap.github.io.git',
 );
 
 my %source = (
@@ -138,38 +139,38 @@ foreach my $source_name (sort keys %source) {
     say "::group::building $source_name section of site"; # GitHub Actions log
 
     my $details = $source{$source_name};
-    my $dir = canonpath("$basedir/$source_name");
+    my $dir = canonpath($details->{is_archive} ? "$basedir/$details->{repo}" : "$basedir/$source_name");
     my $branch = $details->{branch} || $source_name;
 
     my $src;
 
-    if ($details->{is_archive}) {
-        $src = canonpath("$workdir/archived-versions/$details->{version}");
-        say "#### will use archived version from $src...";
-    } else {
-        # first make sure we have the source tree
-        if (! -d $dir) {
-            my $repo_url = $repo{ $details->{repo} };
+    # first make sure we have the source tree
+    if (! -d $dir) {
+        my $repo_url = $repo{ $details->{repo} };
 
-            my @reference;
-            if($details->{repo} eq 'imapd' && $ENV{CYRUS_CLONE_ROOT}) {
-                @reference = ('--reference', $ENV{CYRUS_CLONE_ROOT});
-            }
-
-            say "#### cloning repo for $source_name...";
-            run_or_die('git', 'clone', $repo_url,
-                       '--branch', $branch,
-                       '--single-branch',
-                       '--no-tags',
-                       '--depth', 1,
-                       @reference,
-                       $dir);
-        } else {
-            say "#### updating repo for $source_name...";
-            run_or_die('git', '-C', $dir,
-                       'fetch', 'origin');
+        my @reference;
+        if($details->{repo} eq 'imapd' && $ENV{CYRUS_CLONE_ROOT}) {
+            @reference = ('--reference', $ENV{CYRUS_CLONE_ROOT});
         }
 
+        say "#### cloning repo for $source_name...";
+        run_or_die('git', 'clone', $repo_url,
+                   '--branch', $branch,
+                   '--single-branch',
+                   '--no-tags',
+                   '--depth', 1,
+                   @reference,
+                   $dir);
+    } else {
+        say "#### updating repo for $source_name...";
+        run_or_die('git', '-C', $dir,
+                   'fetch', 'origin');
+    }
+
+    if ($details->{is_archive}) {
+        $src = canonpath("$dir/archived-versions/$details->{version}");
+        say "#### will use archived version from $src...";
+    } else {
         say "#### building docs for $source_name...";
         run_or_die('git', '-C', $dir,
                    'checkout', '-q', "origin/$branch");
@@ -195,6 +196,8 @@ say "#### all done!";
 
 sub archive_copy ($version) {
     return $version => {
+        repo       => 'archive',
+        branch     => 'master',
         is_archive => 1,
         version    => $version,
         paths      => [ "/$version" ],
