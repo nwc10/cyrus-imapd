@@ -44,7 +44,7 @@ jobs:
     # Need --privileged to set kernel.core_pattern
     # In turn, need to do that for the coredump tests
     container:
-      image: ghcr.io/cyrusimap/cyrus-docker:trixie
+      image: ghcr.io/cyrusimap/cyrus-docker:bookworm
     # This must have fetch-depth 0 because the script we run clones it further
     steps:
       - uses: actions/checkout@v6
