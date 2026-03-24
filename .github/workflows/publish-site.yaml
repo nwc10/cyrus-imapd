@@ -14,6 +14,7 @@ on:
       - master
       - main
       - yak-shaving
+      - yak-shaving-site
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -45,6 +46,7 @@ jobs:
     # In turn, need to do that for the coredump tests
     container:
       image: ghcr.io/cyrusimap/cyrus-docker:bookworm
+      options: --init --privileged
     # This must have fetch-depth 0 because the script we run clones it further
     steps:
       - uses: actions/checkout@v6
@@ -63,6 +65,8 @@ jobs:
           # following".  we're explicitly fetching the tags we want, we do not
           # need every other tag that's reachable from them
           git fetch --no-tags upstream 'refs/tags/cyrus-imapd-*:refs/tags/cyrus-imapd-*'
+      - name: override kernel core pattern
+        run: sudo sysctl -w kernel.core_pattern=core.%p
       - name: build and generate a coverage report
         run: cyd coverage
       - name: move it into the site
