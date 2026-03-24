@@ -150,11 +150,19 @@ foreach my $source_name (sort keys %source) {
         # first make sure we have the source tree
         if (! -d $dir) {
             my $repo_url = $repo{ $details->{repo} };
+
+            my @reference;
+            if($details->{repo} eq 'imapd' && $ENV{CYRUS_CLONE_ROOT}) {
+                @reference = ('--reference', $ENV{CYRUS_CLONE_ROOT});
+            }
+
             say "#### cloning repo for $source_name...";
             run_or_die('git', 'clone', $repo_url,
                        '--branch', $branch,
                        '--single-branch',
                        '--no-tags',
+                       '--depth', 1,
+                       @reference,
                        $dir);
         } else {
             say "#### updating repo for $source_name...";
