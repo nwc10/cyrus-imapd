@@ -10,6 +10,8 @@
 #include "mpool.h"
 #include "xmalloc.h"
 
+#include "hash_priv.h"
+
 struct bucketu64 {
     uint64_t key;
     void *data;
@@ -47,7 +49,10 @@ EXPORTED hashu64_table *construct_hashu64_table(hashu64_table *table, size_t siz
       assert(table);
       assert(size);
 
-      table->size  = size;
+      uint8_t size_log2 = hash_base2_size_for_entries(size);
+      size = 1ULL << size_log2;
+      table->size = size;
+      table->mask = ~0ULL >> (8 * sizeof(size_t) - size_log2);
       table->count = 0;
 
       /* Allocate the table -- different for using memory pools and not */
@@ -77,7 +82,7 @@ EXPORTED hashu64_table *construct_hashu64_table(hashu64_table *table, size_t siz
 
 EXPORTED void *hashu64_insert(uint64_t key, void *data, hashu64_table *table)
 {
-      unsigned val = key % table->size;
+      unsigned val = key & table->mask;
       bucketu64 *ptr, *newptr;
 
       /*
@@ -125,7 +130,7 @@ EXPORTED void *hashu64_lookup(uint64_t key, hashu64_table *table)
       if (!table->size || !table->count)
           return NULL;
 
-      unsigned val = key % table->size;
+      unsigned val = key & table->mask;
       bucketu64 *ptr;
 
       if (!(table->table)[val])
@@ -147,7 +152,7 @@ EXPORTED void *hashu64_lookup(uint64_t key, hashu64_table *table)
  * since it will leak memory until you get rid of the entire hash table */
 EXPORTED void *hashu64_del(uint64_t key, hashu64_table *table)
 {
-      unsigned val = key % table->size;
+      unsigned val = key & table->mask;
       bucketu64 *ptr, *last = NULL;
 
       if (!(table->table)[val])
