@@ -13,6 +13,8 @@
 #include "util.h"
 #include "xmalloc.h"
 
+#include "hash_priv.h"
+
 /*
 ** public domain code by Jerry Coffin, with improvements by HenkJan Wolthuis.
 **
@@ -44,7 +46,10 @@ EXPORTED hash_table *construct_hash_table(hash_table *table, size_t size, int us
       assert(table);
       assert(size);
 
+      uint8_t size_log2 = hash_base2_size_for_entries(size);
+      size = 1ULL << size_log2;
       table->size = size;
+      table->mask = ~0ULL >> (8 * sizeof(size_t) - size_log2);
       table->count = 0;
       table->seed = rand(); /* might be zero, that's okay */
       table->hash_load_warned_at = 0;
@@ -94,7 +99,7 @@ EXPORTED hash_table *construct_hash_table(hash_table *table, size_t size, int us
 EXPORTED void *hash_insert(const char *key, void *data, hash_table *table)
 {
       uint32_t hash = strhash_seeded(table->seed, key);
-      unsigned val = hash % table->size;
+      unsigned val = hash & table->mask;
       bucket *ptr, *newptr;
 
       /*
@@ -161,7 +166,7 @@ EXPORTED void *hash_lookup(const char *key, hash_table *table)
           return NULL;
 
       uint32_t hash = strhash_seeded(table->seed, key);
-      unsigned val = hash % table->size;
+      unsigned val = hash & table->mask;
 
       if (!(table->table)[val])
             return NULL;
@@ -183,7 +188,7 @@ EXPORTED void *hash_lookup(const char *key, hash_table *table)
 EXPORTED void *hash_del(const char *key, hash_table *table)
 {
       uint32_t hash = strhash_seeded(table->seed, key);
-      unsigned val = hash % table->size;
+      unsigned val = hash & table->mask;
       bucket *ptr, *last = NULL;
 
       if (!(table->table)[val])

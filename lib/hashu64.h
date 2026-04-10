@@ -3,7 +3,7 @@
 
 #include <stddef.h>           /* For size_t     */
 
-#define HASHU64_TABLE_INITIALIZER {0, 0, NULL, NULL}
+#define HASHU64_TABLE_INITIALIZER {0, 0, 0, NULL, NULL}
 
 /*
 ** A hash table consists of an array of these buckets.  Each bucket
@@ -29,6 +29,7 @@ typedef struct bucketu64 {
 
 typedef struct hashu64_table {
     size_t size;
+    size_t mask;
     size_t count;
     bucketu64 **table;
     struct mpool *pool;
