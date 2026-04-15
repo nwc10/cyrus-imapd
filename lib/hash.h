@@ -91,7 +91,10 @@ strarray_t *hash_keys(const hash_table *table);
 
 /* counts the number of nodes in the hash table */
 
-int hash_numrecords(hash_table *table);
+static inline size_t hash_count(hash_table *table)
+{
+    return table->count;
+}
 
 /*
 ** Frees a hash table.  For each node that was inserted in the table,
