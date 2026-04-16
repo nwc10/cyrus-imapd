@@ -42,6 +42,7 @@ EXPORTED hashu64_table *construct_hashu64_table(hashu64_table *table, size_t siz
       assert(size);
 
       table->size  = size;
+      table->count = 0;
 
       /* Allocate the table -- different for using memory pools and not */
       if(use_mpool) {
@@ -103,6 +104,7 @@ EXPORTED void *hashu64_insert(uint64_t key, void *data, hashu64_table *table)
       newptr->data = data;
       newptr->next = (table->table)[val];
       (table->table)[val] = newptr;
+      table->count++;
       return data;
 }
 
@@ -114,7 +116,7 @@ EXPORTED void *hashu64_insert(uint64_t key, void *data, hashu64_table *table)
 
 EXPORTED void *hashu64_lookup(uint64_t key, hashu64_table *table)
 {
-      if (!table->size)
+      if (!table->size || !table->count)
           return NULL;
 
       unsigned val = key % table->size;
@@ -167,6 +169,7 @@ EXPORTED void *hashu64_del(uint64_t key, hashu64_table *table)
                   if(!table->pool) {
                       free(ptr);
                   }
+                  table->count--;
                   return data;
               }
 
@@ -185,6 +188,7 @@ EXPORTED void *hashu64_del(uint64_t key, hashu64_table *table)
                   if(!table->pool) {
                       free(ptr);
                   }
+                  table->count--;
                   return data;
               }
           }
@@ -239,6 +243,7 @@ EXPORTED void free_hashu64_table(hashu64_table *table, void (*func)(void *))
       }
       table->table = NULL;
       table->size = 0;
+      table->count = 0;
 }
 
 /*
@@ -267,18 +272,3 @@ EXPORTED void hashu64_enumerate(hashu64_table *table,
             }
       }
 }
-
-EXPORTED size_t hashu64_count(hashu64_table *table)
-{
-    size_t count = 0;
-    unsigned i;
-
-    for (i = 0; i < table->size; i++) {
-        bucketu64 *temp;
-        for (temp = (table->table)[i]; temp; temp = temp->next)
-             count++;
-    }
-
-    return count;
-}
-
