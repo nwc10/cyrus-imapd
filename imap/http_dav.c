@@ -3507,7 +3507,7 @@ HIDDEN int preload_proplist(xmlNodePtr proplist, struct propfind_ctx *fctx)
 
     case PROPFIND_EXPAND:
         /* Add all namespaces attached to the response to our hash table */
-        if (!fctx->ns_table->size) {
+        if (!fctx->ns_table->table) {
             xmlNsPtr nsDef;
 
             construct_hash_table(fctx->ns_table, 10, 1);
