@@ -142,7 +142,6 @@ EXPORTED void *hashu64_lookup(uint64_t key, hashu64_table *table)
 EXPORTED void *hashu64_del(uint64_t key, hashu64_table *table)
 {
       unsigned val = key % table->size;
-      void *data;
       bucketu64 *ptr, *last = NULL;
 
       if (!(table->table)[val])
@@ -162,15 +161,10 @@ EXPORTED void *hashu64_del(uint64_t key, hashu64_table *table)
       {
           if (key == ptr->key)
           {
+              void *data = ptr->data;
               if (last != NULL)
               {
-                  data = ptr->data;
                   last->next = ptr->next;
-                  if(!table->pool) {
-                      free(ptr);
-                  }
-                  table->count--;
-                  return data;
               }
 
               /*
@@ -183,14 +177,13 @@ EXPORTED void *hashu64_del(uint64_t key, hashu64_table *table)
 
               else
               {
-                  data = ptr->data;
                   (table->table)[val] = ptr->next;
-                  if(!table->pool) {
-                      free(ptr);
-                  }
-                  table->count--;
-                  return data;
               }
+              if(!table->pool) {
+                  free(ptr);
+              }
+              table->count--;
+              return data;
           }
       }
 
