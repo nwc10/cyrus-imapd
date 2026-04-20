@@ -57,7 +57,8 @@ static size_t table_size(const hash_table *table) {
  */
 
 static size_t table_index(const hash_table *table, uint32_t hash) {
-    return (hash * 0x9e3779b97f4a7c15ULL) >> (8 * sizeof(size_t) - table->size_log2);
+    return ((hash ^ table->chaff) * 0x9e3779b97f4a7c15ULL)
+        >> (8 * sizeof(size_t) - table->size_log2);
 }
 
 EXPORTED hash_table *construct_hash_table(hash_table *table, size_t size, int use_mpool)
@@ -69,6 +70,7 @@ EXPORTED hash_table *construct_hash_table(hash_table *table, size_t size, int us
       table->size_log2 = size_log2;
       table->count = 0;
       table->seed = rand(); /* might be zero, that's okay */
+      table->chaff = rand();
 
       /* Allocate the table -- different for using memory pools and not */
       if (use_mpool) {
@@ -109,6 +111,8 @@ static void hash_split(hash_table *table) {
     memset(new_table, 0, wanted);
 
     size_t i = old_size;
+
+    table->chaff = rand();
 
     /* This is (roughly) hash_enumerate */
     while(i-- > 0) {
