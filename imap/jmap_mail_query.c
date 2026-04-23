@@ -79,6 +79,10 @@ HIDDEN void jmap_email_contactfilter_init(const char *accountid,
                                           const struct namespace *namespace,
                                           struct email_contactfilter *cfilter)
 {
+    /* This memset() effectively assigns HASH_TABLE_INITIALIZER to the member
+     * .contactgroups. The later lazy initialisation of this hash table works
+     * because that macro expands to all zeros, identical to this memset().
+     */
     memset(cfilter, 0, sizeof(struct email_contactfilter));
     cfilter->accountid = accountid;
     cfilter->authstate = authstate;
@@ -260,6 +264,25 @@ HIDDEN int jmap_email_contactfilter_from_filtercondition(json_t *filter,
     /* Open CardDAV db for accountid */
     struct carddav_db *carddavdb = carddav_open_userid(cfilter->accountid);
     if (!carddavdb) {
+        /* I believe this code to be unreachable. For carddav_open_userid() to
+         * return NULL dav_open_userid() must fail - the user's SQLite DB on
+         * disk must be missing or corrupt. However, before we even reach this
+         * code path Cyrus has called my_dav_auth() in http_dav_sharing.c
+         * That calls webdav_open_userid(userid), which also calls
+         * dav_open_userid(userid). The failure path there is:
+         * if (!auth_webdavdb) {
+         *     syslog(LOG_ERR, "Unable to open WebDAV DB for userid: %s", userid);
+         *     return HTTP_UNAVAILABLE;
+         * }
+         *
+         * ie the request has already been abandoned with a 503 error
+         * Hence we can't reach this error path, hence we can't have
+         * cfilter->contactgroups in the state were construct_hash_table() was
+         * called on it, but no entries were added.
+         * (Observe that the loop above has the same json_*() API calls as the
+         * loop below - the test above is "will the loop below find anything")
+         */
+
         syslog(LOG_ERR, "jmap: carddav_open_userid(%s) failed",
                cfilter->accountid);
         r = CYRUSDB_INTERNAL;

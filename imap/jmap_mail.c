@@ -1919,7 +1919,24 @@ static void _email_search_contactgroup(search_expr_t *parent,
                                        const char *attrname,
                                        hash_table *contactgroups)
 {
-    if (!contactgroups || !contactgroups->size) return;
+    if (!contactgroups) return;
+
+    /* At this point contactgroups must have entries - we can only get here if
+     * jmap_email_contactfilter_from_filtercondition() has been called,
+     * it called construct_hash_table(), and made one or more calls to
+     * hash_insert()
+     * The previous code assumed that it was possible for contactgroups to be
+     * non-NULL but point to an uninitialised hash table, and returned early
+     * in that case. That choice seemed conceptually buggy, because it's not
+     * consistent with the "hard false" SEOP_FALSE return just below - if the
+     * user is asking to filter on a groupid, and there are *no* group IDs, then
+     * the filter should return zero results, not return all results. And if
+     * initialisation failed in some way, the search should not return a result
+     * (at all) - instead it should return an error condition.
+     * As is, I believe that this is already handled that way - the only path
+     * that might cause contactgroups not be initialised is unreachable, because
+     * Cyrus will have already returned a 503 status response.
+     */
 
     strarray_t *members = hash_lookup(groupid, contactgroups);
     if (!members || !strarray_size(members)) {
@@ -4894,7 +4911,11 @@ static json_t *emailquery_run(jmap_req_t *req, struct emailquery *q,
     int r = 0;
 
     modseq_t modseq = jmap_modseq(req, MBTYPE_EMAIL, 0);
-    modseq_t addrbook_modseq = contactgroups->size ?
+    /* This ternary tests whether the hash initialisation code in
+     * jmap_email_contactfilter_from_filtercondition() was called
+     * "ensure we have preconditions for lookups"
+     */
+    modseq_t addrbook_modseq = contactgroups->table ?
         jmap_modseq(req, MBTYPE_ADDRESSBOOK, 0) : 0;
     char *querystate = _email_make_querystate(req, modseq, 0, addrbook_modseq);
 
