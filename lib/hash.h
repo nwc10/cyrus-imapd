@@ -7,7 +7,7 @@
 #include "mpool.h"
 #include "strarray.h"
 
-#define HASH_TABLE_INITIALIZER {NULL, NULL, 0, 0, 0, 0}
+#define HASH_TABLE_INITIALIZER (hash_table) { .table = NULL, .pool = NULL, .count = 0, .seed = 0, .chaff = 0, .size_log2 = 0 }
 
 #ifndef EXPORTED
 #define EXPORTED __attribute__((visibility("default")))
