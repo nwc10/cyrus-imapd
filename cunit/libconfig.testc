@@ -1297,6 +1297,21 @@ static void test_parsing(void)
     CU_ASSERT_STRING_EQUAL(addressbookprefix, "Trailing Whitespace");
 }
 
+static void test_overlong_lines(void)
+{
+    tempfile *file = new_tempfile();
+    FILE *fh = fdopen(file->fd, "w");
+    fprintf(fh, "configdirectory: "DBDIR"/conf\n%5000s\n",
+            "autocreate_sieve_folders: Junk | Trash");
+    fclose(fh);
+
+    config_read(file->pathname, 0);
+
+    const char *autocreate_sieve_folders = config_getstring(IMAPOPT_AUTOCREATE_SIEVE_FOLDERS);
+    CU_ASSERT_PTR_NOT_NULL(autocreate_sieve_folders);
+    CU_ASSERT_STRING_EQUAL(autocreate_sieve_folders, "Junk | Trash");
+}
+
 static void test_duplicate(void)
 {
     CU_EXPECT_CYRFATAL_BEGIN;
@@ -1309,6 +1324,19 @@ static void test_duplicate(void)
     CU_EXPECT_CYRFATAL_END(EX_CONFIG,
         "option 'autocreate_sieve_folders' was specified twice in config file"
         " (second occurrence on line 4)");
+}
+
+static void test_duplicate_overflow(void)
+{
+    CU_EXPECT_CYRFATAL_BEGIN;
+    config_read_string(
+        "configdirectory: "DBDIR"/conf\n"
+        "but-first: coffee\n"
+        " but-first:coffee\n"
+    );
+    CU_EXPECT_CYRFATAL_END(EX_CONFIG,
+        "option 'but-first' was specified twice in config file"
+        " (second occurrence on line 3)");
 }
 
 // include
