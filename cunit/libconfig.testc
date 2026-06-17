@@ -5,14 +5,28 @@
 #include <stdint.h>
 #include <sysexits.h>
 #include <unistd.h>
+#include <stddef.h>
 
 #include "cunit/unit.h"
 
 #include "lib/libconfig.h"
 #include "lib/retry.h"
 #include "lib/xmalloc.h"
+#include "lib/xunlink.h"
 
 #define DBDIR "test-libconfig-dbdir"
+
+#define CONFIG_TEMPLATE "/tmp/cyrus-cunit-configXXXXXX"
+
+typedef struct tempfile tempfile;
+
+struct tempfile {
+    tempfile *next;
+    int fd;
+    char pathname[];
+};
+
+static struct tempfile *tempfiles;
 
 static int set_up(void)
 {
@@ -21,14 +35,37 @@ static int set_up(void)
 
 static int tear_down(void)
 {
-    int r;
-
     /* all these tests will initialise some config, clean up after! */
     config_reset();
 
-    r = system("rm -rf " DBDIR);
+    struct tempfile *current;
+    while ((current = tempfiles)) {
+        tempfiles = current->next;
+        xunlink(current->pathname);
+        free(current);
+    }
 
-    return r;
+    return 0;
+}
+
+/* Creates a new temporary file, which will be deleted at "tear down"
+ * Returns a structure with the file name and open file descriptor.
+ * The caller is responsible for closing the file descriptor.
+ *
+ * Useful for cases where more than 1 temporary config file is needed, or the
+ * code needs to know the file name (eg @include), or the contents to generate
+ * can't easily be expressed as a single string passed to config_read_string. */
+
+static tempfile *new_tempfile(void) {
+  const size_t template_len = strlen(CONFIG_TEMPLATE) + 1;
+  const size_t wanted = offsetof(tempfile, pathname) + template_len;
+  tempfile *file = xmalloc(wanted);
+
+  memcpy(file->pathname, CONFIG_TEMPLATE, template_len);
+  file->fd = mkstemp(file->pathname);
+  file->next = tempfiles;
+  tempfiles = file;
+  return file;
 }
 
 static void test_int(void)
@@ -1166,6 +1203,25 @@ static void test_partition_sanity_bad_dups(void)
     r = config_check_partitions(NULL);
     CU_ASSERT_EQUAL(r, -2);
     CU_ASSERT_SYSLOG(/*all*/0, 2);
+}
+
+static void test_empty_option_key(void)
+{
+    tempfile *file = new_tempfile();
+    const char config[] =
+        "configdirectory: "DBDIR"/conf\n"
+        ": value\n";
+    char want[256];
+    snprintf(want, sizeof(want),
+             "empty option name on line 2 of configuration file %s",
+             file->pathname);
+
+    retry_write(file->fd, config, sizeof(config));
+    close(file->fd);
+
+    CU_EXPECT_CYRFATAL_BEGIN;
+    config_read(file->pathname, 0);
+    CU_EXPECT_CYRFATAL_END(EX_CONFIG, want);
 }
 
 /* vim: set ft=c: */
