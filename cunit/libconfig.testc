@@ -1214,23 +1214,31 @@ static void test_missing_file(void)
     );
 }
 
-static void test_empty_option_key(void)
+static void fatal_config_read_with_filename(const char *config,
+                                            const char *message,
+                                            unsigned int line)
 {
     tempfile *file = new_tempfile();
-    const char config[] =
-        "configdirectory: "DBDIR"/conf\n"
-        ": value\n";
     char want[256];
     snprintf(want, sizeof(want),
-             "empty option name on line 2 of configuration file %s",
-             file->pathname);
+             "%s on line %u of configuration file %s",
+             message, line, file->pathname);
 
-    retry_write(file->fd, config, sizeof(config));
+    retry_write(file->fd, config, strlen(config));
     close(file->fd);
 
     CU_EXPECT_CYRFATAL_BEGIN;
     config_read(file->pathname, 0);
     CU_EXPECT_CYRFATAL_END(EX_CONFIG, want);
+}
+
+static void test_empty_option_key(void)
+{
+    fatal_config_read_with_filename(
+        "configdirectory: "DBDIR"/conf\n" ": value\n",
+        "empty option name",
+        2
+    );
 }
 
 static void test_empty_option_value(void)
@@ -1247,40 +1255,20 @@ static void test_empty_option_value(void)
 
 static void test_invalid_option(void)
 {
-    tempfile *file = new_tempfile();
-    const char config[] =
-        "configdirectory: "DBDIR"/conf\n"
-        ";: value\n";
-    char want[256];
-    snprintf(want, sizeof(want),
-             "invalid option name on line 2 of configuration file %s",
-             file->pathname);
-
-    retry_write(file->fd, config, sizeof(config));
-    close(file->fd);
-
-    CU_EXPECT_CYRFATAL_BEGIN;
-    config_read(file->pathname, 0);
-    CU_EXPECT_CYRFATAL_END(EX_CONFIG, want);
+    fatal_config_read_with_filename(
+        "configdirectory: "DBDIR"/conf\n" ";: value\n",
+        "invalid option name",
+        2
+    );
 }
 
 static void test_invalid_directive(void)
 {
-    tempfile *file = new_tempfile();
-    const char config[] =
-        "configdirectory: "DBDIR"/conf\n"
-        "@hoedown: dance!\n";
-    char want[256];
-    snprintf(want, sizeof(want),
-             "invalid directive on line 2 of configuration file %s",
-             file->pathname);
-
-    retry_write(file->fd, config, sizeof(config));
-    close(file->fd);
-
-    CU_EXPECT_CYRFATAL_BEGIN;
-    config_read(file->pathname, 0);
-    CU_EXPECT_CYRFATAL_END(EX_CONFIG, want);
+    fatal_config_read_with_filename(
+        "configdirectory: "DBDIR"/conf\n" "@hoedown: dance!\n",
+        "invalid directive",
+        2
+    );
 }
 
 static void test_parsing(void)
