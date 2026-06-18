@@ -24,12 +24,8 @@
 #include "tok.h"
 #include "util.h"
 
-#define CONFIGHASHSIZE 30 /* relatively small,
-                           * because it is for overflow only */
-#define INCLUDEHASHSIZE 5 /* relatively small,
-                            * but how many includes are reasonable? */
-
-static struct hash_table confighash, includehash;
+static struct hash_table confighash = HASH_TABLE_INITIALIZER;
+static struct hash_table includehash = HASH_TABLE_INITIALIZER;
 
 /* cached configuration variables accessible to the external world */
 EXPORTED const char *config_filename= NULL;       /* filename of configuration file */
@@ -638,13 +634,8 @@ EXPORTED void config_read(const char *alt_config, const int config_need_data)
     if (alt_config) config_filename = xstrdup(alt_config);
     else config_filename = xstrdup(CONFIG_FILENAME);
 
-    if (!construct_hash_table(&confighash, CONFIGHASHSIZE, 1)) {
-        fatal("could not construct configuration hash table", EX_CONFIG);
-    }
-
-    if (!construct_hash_table(&includehash, INCLUDEHASHSIZE, 1)) {
-        fatal("could not construct include file  hash table", EX_CONFIG);
-    }
+    construct_hash_table(&confighash, 0, 0);
+    construct_hash_table(&includehash, 0, 0);
 
     size_t bufsize = GROWSIZE;
     char *read_buf = xmalloc(bufsize);
