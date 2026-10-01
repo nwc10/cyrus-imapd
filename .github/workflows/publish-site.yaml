@@ -82,9 +82,26 @@ jobs:
       - name: override kernel core pattern
         run: sudo sysctl -w kernel.core_pattern=core.%p
       - name: build and generate a coverage report
+        id: coverage
         run: cyd coverage
+        continue-on-error: true
+      - name: cache it as a future fallback
+        if: steps.coverage.outcome == 'success'
+        uses: actions/cache/save@v5
+        with:
+          path: coverage
+          key: pages-coverage-${{ github.ref }}
+      - name: remove the failed coverage tree
+        if: steps.coverage.outcome == 'failure'
+        run: /bin/rm -rf $CYRUS_CLONE_ROOT/coverage
+      - name: retrieve a fallback from the cache
+        if: steps.coverage.outcome == 'failure'
+        uses: actions/cache/restore@v5
+        with:
+          path: coverage
+          key: pages-coverage-${{ github.ref }}
       - name: move it into the site
-        run: mv $CYRUS_CLONE_ROOT/coverage /tmp/CYRUS_DOCS_BUILD_DIR/cyrus-site/
+        run: mv coverage /tmp/CYRUS_DOCS_BUILD_DIR/cyrus-site/
       - name: Upload static files as artifact
         id: deployment
         uses: actions/upload-pages-artifact@v5
