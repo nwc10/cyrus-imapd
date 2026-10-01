@@ -99,7 +99,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: coverage
-          key: pages-coverage-${{ github.ref }}
+          key: bogus-coverage-${{ github.ref }}
       - name: move it into the site
         run: mv coverage /tmp/CYRUS_DOCS_BUILD_DIR/cyrus-site/
       - name: Upload static files as artifact
