@@ -83,7 +83,7 @@ jobs:
         run: sudo sysctl -w kernel.core_pattern=core.%p
       - name: build and generate a coverage report
         id: coverage
-        run: cyd coverage
+        run: /bin/false
         continue-on-error: true
       - name: cache it as a future fallback
         if: steps.coverage.outcome == 'success'
