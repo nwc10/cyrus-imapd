@@ -3211,8 +3211,7 @@ static void card_filter_free(void *vf)
 
     mboxlist_entry_free(&f->inAddressBook);
     if (f->inCardGroup) {
-        free_hash_table(f->inCardGroup, NULL);
-        free(f->inCardGroup);
+        release_hash_table(&f->inCardGroup, NULL);
     }
     contact_textfilter_free(f->fullName);
     contact_textfilter_free(f->given);
@@ -3252,9 +3251,7 @@ static void *card_filter_parse(json_t *arg, void *rock)
     json_t *inCardGroup = json_object_get(arg, "inCardGroup");
     if (inCardGroup) {
         struct buf cid = BUF_INITIALIZER;
-        f->inCardGroup = xmalloc(sizeof(struct hash_table));
-        construct_hash_table(f->inCardGroup,
-                             json_array_size(inCardGroup)+1, 0);
+        f->inCardGroup = malloc_hash_table(json_array_size(inCardGroup)+1);
         size_t i;
         json_t *val;
         json_array_foreach(inCardGroup, i, val) {
@@ -4869,8 +4866,7 @@ static int _card_parseargs_parse(jmap_req_t *req __attribute__((unused)),
         size_t i;
         json_t *val;
 
-        args->props = xzmalloc(sizeof(hash_table));
-        construct_hash_table(args->props, json_array_size(arg) + 1, 0);
+        args->props = malloc_hash_table(json_array_size(arg) + 1);
         json_array_foreach(arg, i, val) {
             const char *s = json_string_value(val);
             if (!s) {
@@ -4975,8 +4971,7 @@ done:
     jmap_parser_fini(&parser);
     jmap_parse_fini(&parse);
     if (db) carddav_close(db);
-    free_hash_table(args.props, NULL);
-    free(args.props);
+    release_hash_table(&args.props, NULL);
     return 0;
 }
 
