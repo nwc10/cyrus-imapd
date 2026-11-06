@@ -4597,7 +4597,7 @@ static void getcalendarevents_rock_init(struct getcalendarevents_rock *rock,
     rock->get = get;
     rock->check_acl = strcmp(req->accountid, req->userid);
     rock->is_sharee = strcmp(req->accountid, req->userid);
-    construct_hashu64_table(&rock->cache_jsevents, 512, 0);
+    construct_hashu64_table(&rock->cache_jsevents, 0, 0);
     construct_hash_table(&rock->floatingtz_by_mboxid, 64, 0);
 }
 
