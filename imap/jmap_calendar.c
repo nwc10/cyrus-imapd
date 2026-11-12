@@ -5013,7 +5013,7 @@ done:
 static void merge_missing_vevents(icalcomponent *dstical, icalcomponent *srcical)
 {
     hash_table have = HASH_TABLE_INITIALIZER;
-    construct_hash_table(&have, 32, 0);
+    construct_hash_table(&have, 0, 0);
     struct buf buf = BUF_INITIALIZER;
 
     int iteration;
